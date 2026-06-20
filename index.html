@@ -2,104 +2,98 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Professional IELTS Audit & History System</title>
+    <title>Dynamic IELTS Competency Auditor</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; }
-        .container { max-width: 900px; margin: auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+        .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         .form-group { margin-bottom: 15px; }
-        input, textarea, select { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-        button { padding: 15px 25px; background: #2c3e50; color: white; border: none; cursor: pointer; border-radius: 4px; font-weight: bold; }
-        #certArea { display: none; margin-top: 40px; border: 8px double #2c3e50; padding: 30px; }
+        select, textarea, input { width: 100%; padding: 12px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 15px; background: #1a5276; color: white; border: none; font-weight: bold; cursor: pointer; }
         .audit-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         .audit-table td, .audit-table th { padding: 12px; border: 1px solid #ddd; }
-        #historyTable { width: 100%; margin-top: 20px; border-collapse: collapse; display: none; }
+        #certArea { display: none; margin-top: 30px; border: 5px solid #1a5276; padding: 30px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>IELTS Proficiency Audit System</h1>
-    <div class="form-group"><input type="text" id="cName" placeholder="Candidate Full Name"></div>
-    <div class="form-group"><input type="text" id="cID" placeholder="Candidate ID Number"></div>
-    <div class="form-group"><select id="testType"><option value="Writing">Writing Task 2</option><option value="Speaking">Speaking Assessment</option></select></div>
-    <div class="form-group"><textarea id="compDict" rows="2">hemodynamic, protocol, systematic, intervention, pharmacological, methodology, empirical, consequence</textarea></div>
-    <div class="form-group"><textarea id="essayInput" rows="8" placeholder="Paste essay/transcript here..."></textarea></div>
-    <button onclick="executeAudit()">Run Audit & Generate Certificate</button>
-    <button onclick="viewHistory()" style="background:#555;">View Audit History</button>
-
-    <!-- Certificate Output -->
-    <div id="certArea">
-        <h2 style="text-align:center;">OFFICIAL PROFICIENCY AUDIT</h2>
-        <p><strong>Candidate:</strong> <span id="vName"></span> | <strong>ID:</strong> <span id="vID"></span> | <strong>Mode:</strong> <span id="vMode"></span></p>
-        <table class="audit-table">
-            <tr><th>Metric</th><th>Band Score</th></tr>
-            <tr><td>Lexical Diversity</td><td id="vTTR"></td></tr>
-            <tr><td>Competency Keyword Adherence</td><td id="vKeys"></td></tr>
-            <tr><td>Grammatical Complexity</td><td id="vGra"></td></tr>
-            <tr><td>Cohesion & Logic</td><td id="vCoh"></td></tr>
-        </table>
-        <h2 style="text-align:center;">OVERALL BAND: <span id="vBand"></span></h2>
-        <p style="font-style:italic; border-left:4px solid #2c3e50; padding-left:10px;" id="vDiagnostic"></p>
-        <button onclick="window.print()">Print Certificate</button>
+    <h1>Dynamic Competency Auditor</h1>
+    
+    <div class="form-group">
+        <label><strong>Select Area of Competency:</strong></label>
+        <select id="compSelect" onchange="updateCompetencyDefaults()">
+            <option value="Nursing">Nursing & Clinical Practice</option>
+            <option value="Engineering">Structural Engineering</option>
+            <option value="Finance">Financial Analysis</option>
+            <option value="Education">Pedagogical Frameworks</option>
+        </select>
     </div>
 
-    <!-- History Log -->
-    <table id="historyTable" border="1">
-        <thead><tr><th>Date</th><th>Name</th><th>Band</th></tr></thead>
-        <tbody id="historyBody"></tbody>
-    </table>
+    <div class="form-group"><input type="text" id="cName" placeholder="Candidate Name"></div>
+    <div class="form-group"><textarea id="compDict" rows="2"></textarea></div>
+    <div class="form-group"><textarea id="essayInput" rows="8" placeholder="Paste response here..."></textarea></div>
+    <button onclick="executeAudit()">Generate Certified Audit</button>
+
+    <div id="certArea">
+        <h2 style="text-align:center;">OFFICIAL COMPETENCY REPORT</h2>
+        <p><strong>Field:</strong> <span id="vField"></span> | <strong>Candidate:</strong> <span id="vName"></span></p>
+        <table class="audit-table">
+            <tr><th>Metric</th><th>Band Score</th></tr>
+            <tr><td>Lexical Diversity (TTR)</td><td id="vTTR"></td></tr>
+            <tr><td>Competency Keyword Density</td><td id="vKeys"></td></tr>
+            <tr><td>Syntactic Complexity</td><td id="vGra"></td></tr>
+            <tr><td>Cohesion & Logic</td><td id="vCoh"></td></tr>
+            <tr style="font-weight:bold; background:#f9f9f9;"><td>OVERALL BAND</td><td id="vBand"></td></tr>
+        </table>
+        <p id="vDiagnostic"></p>
+    </div>
 </div>
 
 <script>
-function executeAudit() {
-    const text = document.getElementById('essayInput').value;
-    const words = text.toLowerCase().match(/\b(\w+)\b/g);
-    if (!words || words.length < 50) { alert("Insufficient text."); return; }
+// Dynamic Competency Configuration
+const competencyProfiles = {
+    "Nursing": { keywords: "hemodynamic, protocol, systematic, intervention, pharmacological, patient, assessment", weight: 1.2 },
+    "Engineering": { keywords: "structural, load-bearing, stability, infrastructure, mechanical, precision, analysis", weight: 1.4 },
+    "Finance": { keywords: "liquidity, asset, allocation, risk, fiscal, audit, revenue, portfolio", weight: 1.3 },
+    "Education": { keywords: "pedagogy, curriculum, assessment, engagement, cognitive, methodology, learning", weight: 1.1 }
+};
 
-    const wordCount = words.length;
-    const uniqueWords = new Set(words).size;
-    const dict = document.getElementById('compDict').value.toLowerCase().split(',').map(s => s.trim());
-    
-    // Logic Engines
-    const ttr = Math.min(9, (uniqueWords / wordCount) * 12);
-    const matches = dict.filter(w => text.toLowerCase().includes(w)).length;
-    const keyScore = Math.min(9, (matches / Math.max(1, dict.length)) * 9);
-    const complex = (text.match(/[,;](.*?)(although|while|because|if|unless|provided)/gi) || []).length;
-    const graScore = Math.min(9, (complex / (wordCount / 200)) + 4);
-    const coh = (text.match(/(furthermore|however|subsequently|consequently|in addition|whereas)/gi) || []).length;
-    const cohScore = Math.min(9, (coh / (wordCount / 150)) + 4);
-
-    const band = ((ttr + keyScore + graScore + cohScore) / 4).toFixed(1);
-
-    // Diagnostics
-    let feedback = band >= 7.5 ? "Professional Mastery: Advanced command of subject-specific terminology and logical structure." : 
-                   band >= 6.0 ? "Competent Performance: Good logical flow, but requires more precise lexical variety." : 
-                   "Developmental: Focus on increasing sentence complexity and academic marker usage.";
-
-    // Save to History
-    const record = { date: new Date().toLocaleDateString(), name: document.getElementById('cName').value, band: band };
-    let history = JSON.parse(localStorage.getItem('auditHistory') || '[]');
-    history.push(record);
-    localStorage.setItem('auditHistory', JSON.stringify(history));
-
-    // Update Display
-    document.getElementById('vName').innerText = record.name;
-    document.getElementById('vID').innerText = document.getElementById('cID').value;
-    document.getElementById('vMode').innerText = document.getElementById('testType').value;
-    document.getElementById('vTTR').innerText = ttr.toFixed(1);
-    document.getElementById('vKeys').innerText = keyScore.toFixed(1);
-    document.getElementById('vGra').innerText = graScore.toFixed(1);
-    document.getElementById('vCoh').innerText = cohScore.toFixed(1);
-    document.getElementById('vBand').innerText = band;
-    document.getElementById('vDiagnostic').innerText = feedback;
-    document.getElementById('certArea').style.display = 'block';
+function updateCompetencyDefaults() {
+    const selected = document.getElementById('compSelect').value;
+    document.getElementById('compDict').value = competencyProfiles[selected].keywords;
 }
 
-function viewHistory() {
-    const history = JSON.parse(localStorage.getItem('auditHistory') || '[]');
-    const body = document.getElementById('historyBody');
-    body.innerHTML = history.map(r => `<tr><td>${r.date}</td><td>${r.name}</td><td>${r.band}</td></tr>`).join('');
-    document.getElementById('historyTable').style.display = 'table';
+// Initialize on load
+window.onload = updateCompetencyDefaults;
+
+function executeAudit() {
+    const field = document.getElementById('compSelect').value;
+    const text = document.getElementById('essayInput').value;
+    const words = text.toLowerCase().match(/\b(\w+)\b/g);
+    if (!words) return;
+
+    const wordCount = words.length;
+    const dict = document.getElementById('compDict').value.split(',').map(s => s.trim());
+    
+    // Core Logic (Consistent across all competencies)
+    const ttr = Math.min(9, (new Set(words).size / wordCount) * 12);
+    const matches = dict.filter(w => text.toLowerCase().includes(w)).length;
+    // Apply competency-specific scaling weight
+    const keyScore = Math.min(9, (matches / dict.length) * (9 * competencyProfiles[field].weight));
+    const gra = Math.min(9, ((text.match(/[,;]/g) || []).length / (wordCount / 100)) + 4);
+    const coh = Math.min(9, ((text.match(/(furthermore|however|consequently|therefore)/gi) || []).length / (wordCount / 150)) + 4);
+
+    const band = ((ttr + keyScore + gra + coh) / 4).toFixed(1);
+
+    // Populate Results
+    document.getElementById('vField').innerText = field;
+    document.getElementById('vName').innerText = document.getElementById('cName').value;
+    document.getElementById('vTTR').innerText = ttr.toFixed(1);
+    document.getElementById('vKeys').innerText = keyScore.toFixed(1);
+    document.getElementById('vGra').innerText = gra.toFixed(1);
+    document.getElementById('vCoh').innerText = coh.toFixed(1);
+    document.getElementById('vBand').innerText = band;
+    document.getElementById('certArea').style.display = 'block';
 }
 </script>
 </body>
